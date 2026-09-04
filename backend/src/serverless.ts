@@ -8,6 +8,7 @@ import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 import { AppModule } from './app.module';
+import { origenesPermitidos } from './common/frontend.util';
 
 /**
  * Arranca Nest sobre un Express "plano" y devuelve ese Express para que lo consuma
@@ -21,8 +22,7 @@ export async function bootstrapServer() {
     logger: ['error', 'warn', 'log'],
   });
 
-  const frontendUrl = process.env.FRONTEND_URL;
-  app.enableCors({ origin: frontendUrl ? frontendUrl.split(',') : true });
+  app.enableCors({ origin: origenesPermitidos(process.env.FRONTEND_URL) });
 
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),

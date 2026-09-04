@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Turno } from '../database/entities/turno.entity';
 import { Usuario } from '../database/entities/usuario.entity';
+import { FRONTEND_URL_DEFAULT, normalizarOrigen } from '../common/frontend.util';
 import { MailerService } from './mailer.service';
 // WhatsApp (Twilio) desactivado. Para reactivar: ver notas al pie de este archivo,
 // notificaciones.module.ts y las variables TWILIO_* en .env.example.
@@ -149,10 +150,12 @@ export class NotificadorService {
 
   private baseUrl() {
     const publico = this.config.get<string>('PUBLIC_APP_URL');
-    if (publico) return publico.replace(/\/$/, '');
+    if (publico) return normalizarOrigen(publico);
     const front = this.config.get<string>('FRONTEND_URL');
-    if (front) return front.split(',')[0].replace(/\/$/, '');
-    return 'http://localhost:3000';
+    if (front) return normalizarOrigen(front.split(',')[0]);
+    return this.config.get('NODE_ENV') === 'production'
+      ? FRONTEND_URL_DEFAULT
+      : 'http://localhost:3000';
   }
 
   /** Link público con token firmado que lleva a la pantalla de confirmar/cancelar. */
