@@ -1,0 +1,48 @@
+{
+  "name": "turnero-peluqueria-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "schema:sync": "node dist/schema-sync.js",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.2.3",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.2.3",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.2.3",
+    "@nestjs/typeorm": "^11.0.3",
+    "bcryptjs": "^2.4.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "express": "^5.1.0",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.13.1",
+    "reflect-metadata": "^0.2.1",
+    "rxjs": "^7.8.1",
+    "typeorm": "^1.1.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.11.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/schematics": "^11.1.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.7.4",
+    "@types/nodemailer": "^6.4.24",
+    "@typescript-eslint/eslint-plugin": "^8.69.0",
+    "@typescript-eslint/parser": "^8.69.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.0.0",
+    "typescript": "^5.6.2"
+  }
+}
