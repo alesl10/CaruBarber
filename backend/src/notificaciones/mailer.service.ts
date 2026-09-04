@@ -27,17 +27,26 @@ export class MailerService implements OnModuleInit {
     this.from = this.config.get<string>('MAIL_FROM') || this.from;
 
     if (host) {
-      this.transporter = nodemailer.createTransport({
+      // `family` no está en los tipos de @types/nodemailer pero sí lo soporta en runtime
+      // (lo pasa al socket subyacente); de ahí el cast a `TransportOptions`.
+      const opciones = {
         host,
         port: Number(this.config.get('SMTP_PORT', 587)),
         secure: this.config.get('SMTP_SECURE') === 'true',
+        // Forzar IPv4: en Vercel (AWS Lambda) la resolución a IPv6 de smtp.gmail.com suele
+        // quedar en un agujero negro de red y el socket nunca recibe el saludo del server
+        // ("Greeting never received"), aunque local funcione perfecto.
+        family: 4,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
         auth: this.config.get<string>('SMTP_USER')
           ? {
               user: this.config.get<string>('SMTP_USER'),
               pass: this.config.get<string>('SMTP_PASS'),
             }
           : undefined,
-      });
+      } as nodemailer.TransportOptions;
+      this.transporter = nodemailer.createTransport(opciones);
       this.modo = 'smtp';
       this.logger.log(`Email por SMTP: ${host}`);
       return;
