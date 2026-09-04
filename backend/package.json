@@ -2,6 +2,9 @@
   "name": "turnero-peluqueria-backend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "build": "nest build",
     "start": "node dist/main",

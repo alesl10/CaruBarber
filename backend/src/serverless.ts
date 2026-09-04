@@ -1,4 +1,8 @@
 import 'reflect-metadata';
+// TypeORM carga el driver de Postgres con un require() dinámico, invisible para el tracer
+// de Vercel (@vercel/nft) -> sin esto, `pg` queda fuera del bundle de la función serverless
+// y arranca con DriverPackageNotInstalledError. Este import de lado-efecto lo fuerza dentro.
+import 'pg';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
