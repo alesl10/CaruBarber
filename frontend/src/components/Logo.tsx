@@ -1,51 +1,19 @@
 import { fuenteDisplay, oroGradiente } from '../lib/ui';
 
-/** Monograma "C" con navaja y tijera, en dorado. */
+/** Ratio real del recorte del isotipo (navaja + tijera en forma de "C"). */
+const RATIO_MARK = 578 / 553;
+
+/** Isotipo de la marca: navaja + tijera en forma de "C", en dorado (logo real de Caru Barber). */
 export function LogoBadge({ size = 40 }: { size?: number }) {
-  const id = 'oroLogo';
   return (
-    <svg
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo-mark.png"
+      alt="Caru Barber"
       width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      role="img"
-      aria-label="Caru Barber"
-      style={{ display: 'block', flexShrink: 0 }}
-    >
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#9A751C" />
-          <stop offset="0.42" stopColor="#D4AF37" />
-          <stop offset="0.72" stopColor="#F2D98A" />
-          <stop offset="1" stopColor="#C9A24B" />
-        </linearGradient>
-      </defs>
-
-      <circle cx="50" cy="50" r="45" fill="none" stroke={`url(#${id})`} strokeWidth="2" opacity="0.4" />
-
-      {/* C */}
-      <path
-        d="M74 27 A31 31 0 1 0 74 73"
-        fill="none"
-        stroke={`url(#${id})`}
-        strokeWidth="9"
-        strokeLinecap="round"
-      />
-
-      {/* navaja recta arriba */}
-      <g stroke={`url(#${id})`} strokeWidth="4.5" strokeLinecap="round">
-        <line x1="45" y1="29" x2="77" y2="19" />
-        <line x1="77" y1="19" x2="88" y2="23" />
-      </g>
-
-      {/* tijera */}
-      <g stroke={`url(#${id})`} strokeWidth="3.4" fill="none" strokeLinecap="round">
-        <line x1="41" y1="59" x2="63" y2="75" />
-        <line x1="63" y1="59" x2="41" y2="75" />
-        <circle cx="38" cy="57.5" r="3" />
-        <circle cx="66" cy="57.5" r="3" />
-      </g>
-    </svg>
+      height={Math.round(size * RATIO_MARK)}
+      style={{ display: 'block', flexShrink: 0, objectFit: 'contain' }}
+    />
   );
 }
 
@@ -100,5 +68,22 @@ export function Logo({ size = 34, texto = 18 }: { size?: number; texto?: number 
       <LogoBadge size={size} />
       <Wordmark size={texto} />
     </span>
+  );
+}
+
+/** Ratio real del recorte del lockup completo (badge + "CARU BARBER" + regla). */
+const RATIO_LOCKUP = 834 / 1071;
+
+/** Arte completo de la marca (badge + wordmark + regla), para pantallas de bienvenida. */
+export function LogoLockup({ ancho = 260 }: { ancho?: number }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo-completo.png"
+      alt="Caru Barber"
+      width={ancho}
+      height={Math.round(ancho * RATIO_LOCKUP)}
+      style={{ display: 'block', margin: '0 auto' }}
+    />
   );
 }

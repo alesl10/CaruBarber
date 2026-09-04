@@ -19,11 +19,10 @@ import { CreateTurnoDto } from './dto/turno.dto';
 import { TurnosService } from './turnos.service';
 
 @Controller('turnos')
-@UseGuards(JwtAuthGuard)
 export class TurnosController {
   constructor(private readonly turnosService: TurnosService) {}
 
-  /** Horarios libres para una fecha + servicio. */
+  /** Público: horarios libres para una fecha + servicio (para elegir turno sin login). */
   @Get('disponibilidad')
   disponibilidad(
     @Query('fecha') fecha: string,
@@ -35,15 +34,22 @@ export class TurnosController {
     return this.turnosService.disponibilidad(fecha, servicioId);
   }
 
-  /** Turnos del cliente autenticado. */
+  /** Público: crear una reserva sin cuenta (nombre + email + celular en el body). */
+  @Post()
+  crear(@Body() dto: CreateTurnoDto) {
+    return this.turnosService.crear(dto);
+  }
+
+  /** Turnos de un cliente que sí tiene cuenta (uso interno/futuro; el flujo público no la usa). */
   @Get('mios')
+  @UseGuards(JwtAuthGuard)
   mios(@CurrentUser() user: UsuarioActual) {
     return this.turnosService.listarDeCliente(user.sub);
   }
 
   /** Métricas del panel (solo peluquero). Rango inclusive. */
   @Get('estadisticas')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   estadisticas(@Query('desde') desde: string, @Query('hasta') hasta: string) {
     const re = /^\d{4}-\d{2}-\d{2}$/;
@@ -55,7 +61,7 @@ export class TurnosController {
 
   /** Agenda completa (solo peluquero). Filtra por día, por rango, y/o por estado. */
   @Get()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   listar(
     @Query('fecha') fecha?: string,
@@ -66,26 +72,23 @@ export class TurnosController {
     return this.turnosService.listarTodos({ fecha, desde, hasta, estado });
   }
 
-  @Post()
-  crear(@CurrentUser() user: UsuarioActual, @Body() dto: CreateTurnoDto) {
-    return this.turnosService.crear(user, dto);
-  }
-
   @Patch(':id/confirmar')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   confirmar(@Param('id', ParseIntPipe) id: number) {
     return this.turnosService.confirmar(id);
   }
 
   @Patch(':id/realizar')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   realizar(@Param('id', ParseIntPipe) id: number) {
     return this.turnosService.marcarRealizado(id);
   }
 
+  /** El cliente sin cuenta cancela por el link firmado del email (ver TurnoPublicoController). */
   @Patch(':id/cancelar')
+  @UseGuards(JwtAuthGuard)
   cancelar(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: UsuarioActual,

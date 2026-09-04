@@ -102,7 +102,8 @@ export class TurnosService {
   // Crear turno (cliente)
   // ---------------------------------------------------------------------------
 
-  async crear(cliente: UsuarioActual, dto: CreateTurnoDto) {
+  /** Reserva sin cuenta: el cliente se identifica por email (se crea o reutiliza su ficha). */
+  async crear(dto: CreateTurnoDto) {
     const servicio = await this.serviciosService.findOneActivo(dto.servicioId);
     const duracion = servicio.duracionMinutos;
 
@@ -130,9 +131,11 @@ export class TurnosService {
       throw new BadRequestException('El horario seleccionado no está disponible');
     }
 
+    const cliente = await this.resolverCliente(dto);
+
     const horaFin = sumarMinutos(dto.horaInicio, duracion);
     const turno = await this.turnoRepository.save({
-      clienteId: cliente.sub,
+      clienteId: cliente.id,
       servicioId: servicio.id,
       fecha: dto.fecha,
       horaInicio: dto.horaInicio,
@@ -149,11 +152,42 @@ export class TurnosService {
     });
 
     const enriquecido = (await this.enriquecer([turno]))[0];
-    this.notificador
-      .turnoReservado(this.datosPara(turno, enriquecido))
-      .catch(() => undefined);
+    const datos = this.datosPara(turno, enriquecido);
+    this.notificador.turnoReservado(datos).catch(() => undefined);
+    this.notificador.turnoRecibido(datos).catch(() => undefined);
 
     return enriquecido;
+  }
+
+  /**
+   * Busca al cliente por email (no distingue mayúsculas) o lo crea sin contraseña
+   * (no tiene cuenta ni login: se lo identifica solo por su email en cada reserva).
+   * Si el email ya pertenece a otro rol (p. ej. el admin), no se le pisan los datos.
+   */
+  private async resolverCliente(datos: { nombre: string; email: string; telefono: string }) {
+    const email = datos.email.trim().toLowerCase();
+    const existente = await this.usuarioRepository.findOne({ where: { email } });
+
+    if (existente) {
+      if (existente.rol === 'cliente') {
+        const cambios: Partial<Usuario> = {};
+        if (datos.nombre && datos.nombre !== existente.nombre) cambios.nombre = datos.nombre;
+        if (datos.telefono && datos.telefono !== existente.telefono) cambios.telefono = datos.telefono;
+        if (Object.keys(cambios).length) {
+          Object.assign(existente, cambios);
+          await this.usuarioRepository.save(existente);
+        }
+      }
+      return existente;
+    }
+
+    return this.usuarioRepository.save({
+      nombre: datos.nombre,
+      email,
+      password: null,
+      rol: 'cliente' as const,
+      telefono: datos.telefono,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -211,6 +245,39 @@ export class TurnosService {
       { servicioId: number; nombre: string; precio: number; realizados: number; monto: number }
     >();
 
+    // Serie temporal: una fila por día del rango (para los gráficos del panel).
+    const serieMap = new Map<
+      string,
+      {
+        fecha: string;
+        pendientes: number;
+        confirmados: number;
+        realizados: number;
+        cancelados: number;
+        recaudado: number;
+      }
+    >();
+    const fin = new Date(`${hasta}T00:00:00`);
+    const inicio = new Date(`${desde}T00:00:00`);
+    const dias = (fin.getTime() - inicio.getTime()) / 86400000;
+    for (
+      let f = new Date(inicio);
+      f <= fin && dias >= 0 && dias <= 370;
+      f.setDate(f.getDate() + 1)
+    ) {
+      const iso = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(
+        f.getDate(),
+      ).padStart(2, '0')}`;
+      serieMap.set(iso, {
+        fecha: iso,
+        pendientes: 0,
+        confirmados: 0,
+        realizados: 0,
+        cancelados: 0,
+        recaudado: 0,
+      });
+    }
+
     for (const t of turnos) {
       if (t.estado === 'pendiente') resumen.pendientes++;
       else if (t.estado === 'confirmado') resumen.confirmados++;
@@ -220,6 +287,15 @@ export class TurnosService {
       const precio = precioPorId.get(t.servicioId) ?? 0;
       if (t.estado === 'realizado') resumen.recaudado += precio;
       if (t.estado === 'confirmado') resumen.recaudadoProyectado += precio;
+
+      const filaDia = serieMap.get(t.fecha);
+      if (filaDia) {
+        if (t.estado === 'pendiente') filaDia.pendientes++;
+        else if (t.estado === 'confirmado') filaDia.confirmados++;
+        else if (t.estado === 'realizado') filaDia.realizados++;
+        else if (t.estado === 'cancelado') filaDia.cancelados++;
+        if (t.estado === 'realizado') filaDia.recaudado += precio;
+      }
 
       if (t.estado === 'realizado') {
         const fila =
@@ -240,6 +316,7 @@ export class TurnosService {
     return {
       ...resumen,
       porServicio: [...porServicioMap.values()].sort((a, b) => b.monto - a.monto),
+      serie: [...serieMap.values()],
     };
   }
 

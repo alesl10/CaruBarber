@@ -31,6 +31,7 @@ export class ServiciosService {
       nombre: dto.nombre,
       duracionMinutos: dto.duracionMinutos,
       precio: dto.precio,
+      imagenUrl: dto.imagenUrl ?? null,
       activo: true,
     });
   }

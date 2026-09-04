@@ -73,6 +73,39 @@ export class NotificadorService {
     }
   }
 
+  /**
+   * Turno nuevo → avisar también al cliente (no tiene cuenta ni "mis turnos": este email
+   * y su link de cancelar son su único comprobante hasta que el peluquero confirme).
+   */
+  async turnoRecibido(d: DatosTurno) {
+    try {
+      if (!d.cliente.email) return;
+      const cuando = `${d.turno.fecha} a las ${d.turno.horaInicio}`;
+      const linkCancelar = this.link(d.turno.id, 'cliente', 'cancelar');
+      const texto =
+        `Hola ${d.cliente.nombre}, recibimos tu solicitud de turno para el ${cuando} (${d.servicioNombre}).\n` +
+        `Queda pendiente hasta que el barbero la confirme; te avisamos por acá.\n\n` +
+        `Si no podés asistir, cancelalo acá: ${linkCancelar}`;
+
+      await this.mailer.enviar({
+        to: d.cliente.email,
+        subject: `Solicitud recibida · ${cuando}`,
+        text: texto,
+        html: this.htmlConAcciones(
+          'Recibimos tu solicitud de turno',
+          [
+            ['Cuándo', cuando],
+            ['Servicio', d.servicioNombre],
+            ['Estado', 'Pendiente de confirmación'],
+          ],
+          [{ texto: 'No puedo asistir — cancelar', url: linkCancelar, color: '#991b1b' }],
+        ),
+      });
+    } catch (err) {
+      this.logger.error(`turnoRecibido: ${(err as Error).message}`);
+    }
+  }
+
   /** Turno confirmado → avisar al cliente. */
   async turnoConfirmado(d: DatosTurno) {
     try {

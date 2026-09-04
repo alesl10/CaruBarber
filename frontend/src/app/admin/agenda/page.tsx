@@ -16,11 +16,12 @@ import {
   rangoMes,
   rangoSemana,
 } from '../../../lib/fechas';
-import { Turno } from '../../../lib/types';
+import { EstadoTurno, Turno } from '../../../lib/types';
 import {
   avisoError,
   botonGhost,
   card,
+  chipEstado,
   colorEstado,
   colores,
   input,
@@ -117,6 +118,8 @@ function AgendaInner() {
         )}
       </div>
 
+      <ResumenEstados turnos={turnos} />
+
       {error && <div style={{ ...avisoError, marginBottom: 16 }}>{error}</div>}
 
       {vista === 'dia' && <VistaDia turnos={turnos} onAccion={accion} />}
@@ -144,6 +147,42 @@ function AgendaInner() {
 
       {modal && <TurnoModal turno={modal} onClose={() => setModal(null)} onAccion={accion} />}
     </main>
+  );
+}
+
+const ESTADOS_RESUMEN: { estado: EstadoTurno; label: string }[] = [
+  { estado: 'pendiente', label: 'pendientes' },
+  { estado: 'confirmado', label: 'confirmados' },
+  { estado: 'realizado', label: 'realizados' },
+  { estado: 'cancelado', label: 'cancelados' },
+];
+
+/** Cuántos turnos hay, por estado, dentro del rango que se está mirando (día/semana/mes). */
+function ResumenEstados({ turnos }: { turnos: Turno[] }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          padding: '3px 10px',
+          borderRadius: 999,
+          border: `1px solid ${colores.borde}`,
+          color: colores.textoSuave,
+        }}
+      >
+        {turnos.length} turno{turnos.length !== 1 ? 's' : ''} en total
+      </span>
+      {ESTADOS_RESUMEN.map(({ estado, label }) => {
+        const n = turnos.filter((t) => t.estado === estado).length;
+        if (!n) return null;
+        return (
+          <span key={estado} style={chipEstado(estado)}>
+            {n} {label}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

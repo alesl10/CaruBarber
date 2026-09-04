@@ -13,9 +13,12 @@ export class Usuario {
   @Column({ unique: true })
   email: string;
 
-  /** Hash bcrypt, nunca la contraseña en texto plano. */
-  @Column()
-  password: string;
+  /**
+   * Hash bcrypt, nunca la contraseña en texto plano. Null para clientes creados al
+   * reservar sin cuenta (no tienen login; se identifican solo por email).
+   */
+  @Column({ type: 'varchar', nullable: true })
+  password: string | null;
 
   @Column({ default: 'cliente' })
   rol: RolUsuario;

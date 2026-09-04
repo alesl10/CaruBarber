@@ -1,142 +1,188 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { LogoBadge, TijeraRule, Wordmark } from '../components/Logo';
-import { useAuth } from '../lib/auth';
+import { LogoLockup, TijeraRule } from '../components/Logo';
+import { ServicioMedia } from '../components/ServicioMedia';
+import { api } from '../lib/api';
+import { hoyISO } from '../lib/fechas';
+import { DIAS_SEMANA, HorarioTrabajo, Servicio } from '../lib/types';
 import {
-  avisoError,
   boton,
   botonGhost,
   card,
   colores,
-  input,
-  label,
+  formatearPrecio,
+  fuenteDisplay,
   page,
+  textoDorado,
+  titulo,
 } from '../lib/ui';
 
-export default function HomePage() {
-  const { user, cargando, login, register } = useAuth();
-  const router = useRouter();
+const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0]; // lunes primero
 
-  const [modo, setModo] = useState<'login' | 'registro'>('login');
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', telefono: '' });
-  const [error, setError] = useState('');
-  const [enviando, setEnviando] = useState(false);
+const VENTAJAS = [
+  {
+    icono: '📅',
+    titulo: 'Elegís día y hora',
+    texto: 'Calendario con los horarios realmente libres, al instante.',
+  },
+  {
+    icono: '✍️',
+    titulo: 'Sin crear cuenta',
+    texto: 'Reservás con tu nombre, email y celular. Nada de contraseñas.',
+  },
+  {
+    icono: '📩',
+    titulo: 'Confirmación por email',
+    texto: 'Te avisamos apenas el barbero confirma, con link para cancelar si hace falta.',
+  },
+];
+
+function hoyDiaSemana() {
+  return new Date(`${hoyISO()}T00:00:00`).getDay();
+}
+
+export default function LandingPage() {
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [horarios, setHorarios] = useState<HorarioTrabajo[]>([]);
 
   useEffect(() => {
-    if (!cargando && user) {
-      router.replace(user.rol === 'admin' ? '/admin' : '/reservar');
-    }
-  }, [user, cargando, router]);
+    api<Servicio[]>('/servicios', { auth: false })
+      .then(setServicios)
+      .catch(() => undefined);
+    api<HorarioTrabajo[]>('/horarios', { auth: false })
+      .then(setHorarios)
+      .catch(() => undefined);
+  }, []);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setEnviando(true);
-    try {
-      if (modo === 'login') {
-        await login(form.email.trim(), form.password);
-      } else {
-        await register({
-          nombre: form.nombre.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          telefono: form.telefono.trim() || undefined,
-        });
-      }
-    } catch (err: any) {
-      setError(err.message || 'No se pudo completar la operación');
-    } finally {
-      setEnviando(false);
-    }
-  }
+  const hoy = hoyDiaSemana();
+  const horariosPorDia = new Map(horarios.map((h) => [h.diaSemana, h]));
 
   return (
-    <main style={{ ...page, maxWidth: 440 }}>
-      <div style={{ textAlign: 'center', margin: '18px 0 26px', display: 'grid', justifyItems: 'center', gap: 12 }}>
-        <LogoBadge size={92} />
-        <Wordmark size={30} />
-        <TijeraRule ancho={200} />
-        <p style={{ color: colores.textoSuave, margin: 0, fontSize: 14, letterSpacing: '0.02em' }}>
-          Reservá tu turno o ingresá como barbero para administrar la agenda.
+    <main style={page}>
+      {/* Hero */}
+      <section
+        style={{
+          textAlign: 'center',
+          padding: '32px 12px 40px',
+          display: 'grid',
+          justifyItems: 'center',
+          gap: 18,
+        }}
+      >
+        <LogoLockup ancho={230} />
+        <p
+          style={{
+            maxWidth: 480,
+            margin: 0,
+            fontSize: 16,
+            color: colores.textoSuave,
+            lineHeight: 1.5,
+          }}
+        >
+          Cortes clásicos, prolijidad de barbería y turnos que se reservan en menos de un minuto.
         </p>
+        <Link href="/reservar" style={{ ...boton(), fontSize: 15, padding: '14px 30px' }}>
+          Reservar turno →
+        </Link>
+      </section>
+
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <TijeraRule ancho={260} />
       </div>
 
-      <div style={{ ...card, display: 'grid', gap: 16 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => setModo('login')}
-            style={{ ...botonGhost(modo === 'login'), flex: 1 }}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            onClick={() => setModo('registro')}
-            style={{ ...botonGhost(modo === 'registro'), flex: 1 }}
-          >
-            Crear cuenta
-          </button>
+      {/* Ventajas */}
+      <section
+        style={{
+          display: 'grid',
+          gap: 14,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          margin: '36px 0',
+        }}
+      >
+        {VENTAJAS.map((v) => (
+          <div key={v.titulo} style={{ ...card, textAlign: 'center' }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{v.icono}</div>
+            <strong style={{ fontFamily: fuenteDisplay, letterSpacing: '0.02em' }}>{v.titulo}</strong>
+            <p style={{ color: colores.textoSuave, fontSize: 13, marginTop: 6, lineHeight: 1.4 }}>
+              {v.texto}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      {/* Servicios */}
+      {servicios.length > 0 && (
+        <section style={{ marginBottom: 36 }}>
+          <h2 style={{ ...titulo, fontSize: 20, marginBottom: 16, textAlign: 'center' }}>
+            Nuestros <span style={textoDorado}>servicios</span>
+          </h2>
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            {servicios.map((s) => (
+              <div key={s.id} style={{ ...card, padding: 0, overflow: 'hidden' }}>
+                <ServicioMedia servicio={s} alto={160} />
+                <div style={{ padding: 14, textAlign: 'center' }}>
+                  <strong style={{ fontFamily: fuenteDisplay, fontSize: 15 }}>{s.nombre}</strong>
+                  <div style={{ fontSize: 12, color: colores.textoSuave, marginTop: 4 }}>
+                    {s.duracionMinutos} min
+                  </div>
+                  <div style={{ ...textoDorado, fontFamily: fuenteDisplay, fontSize: 18, fontWeight: 700, marginTop: 6 }}>
+                    {formatearPrecio(s.precio)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Horarios */}
+      {horarios.length > 0 && (
+        <section style={{ ...card, maxWidth: 420, margin: '0 auto 40px' }}>
+          <strong style={{ letterSpacing: '0.03em', display: 'block', marginBottom: 10 }}>
+            Horarios de atención
+          </strong>
+          <div style={{ display: 'grid', gap: 4 }}>
+            {ORDEN_SEMANA.map((dia) => {
+              const h = horariosPorDia.get(dia);
+              const esHoy = dia === hoy;
+              return (
+                <div
+                  key={dia}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 13,
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    background: esHoy ? 'rgba(212,175,55,0.10)' : 'transparent',
+                    color: esHoy ? colores.oroClaro : colores.texto,
+                  }}
+                >
+                  <span style={{ fontWeight: esHoy ? 700 : 400 }}>{DIAS_SEMANA[dia]}</span>
+                  <span style={{ color: h?.activo ? undefined : colores.textoTenue }}>
+                    {h?.activo ? `${h.horaApertura} a ${h.horaCierre}` : 'Cerrado'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* CTA final */}
+      <section style={{ textAlign: 'center', marginBottom: 24, display: 'grid', gap: 12, justifyItems: 'center' }}>
+        <strong style={{ fontFamily: fuenteDisplay, fontSize: 18 }}>¿Listo para tu turno?</strong>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link href="/reservar" style={boton()}>
+            Reservar turno
+          </Link>
+          <Link href="/login" style={botonGhost()}>
+            Soy el barbero
+          </Link>
         </div>
-
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-          {modo === 'registro' && (
-            <label style={label}>
-              Nombre
-              <input
-                style={input}
-                value={form.nombre}
-                required
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-              />
-            </label>
-          )}
-
-          <label style={label}>
-            Email
-            <input
-              style={input}
-              type="email"
-              value={form.email}
-              required
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </label>
-
-          <label style={label}>
-            Contraseña
-            <input
-              style={input}
-              type="password"
-              value={form.password}
-              required
-              minLength={6}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </label>
-
-          {modo === 'registro' && (
-            <label style={label}>
-              Teléfono (opcional)
-              <input
-                style={input}
-                value={form.telefono}
-                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-              />
-            </label>
-          )}
-
-          {error && <div style={avisoError}>{error}</div>}
-
-          <button type="submit" style={boton(undefined, enviando)} disabled={enviando}>
-            {enviando ? 'Procesando…' : modo === 'login' ? 'Entrar' : 'Registrarme'}
-          </button>
-        </form>
-      </div>
-
-      <p style={{ color: colores.textoTenue, fontSize: 12, marginTop: 16, textAlign: 'center' }}>
-        Demo: cliente@peluqueria.com / cliente123 · admin@peluqueria.com / admin123
-      </p>
+      </section>
     </main>
   );
 }

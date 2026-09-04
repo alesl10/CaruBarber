@@ -21,24 +21,25 @@ npm install
 npm run dev
 ```
 
-Abrir http://localhost:3000.
+Abrir http://localhost:3000 — landing del cliente, con un botón a **Reservar turno** (sin login).
 
-Usuarios demo (se crean solos al primer arranque):
+El barbero entra en http://localhost:3000/login (usuario demo, se crea solo al primer arranque):
 
 | Rol      | Email                     | Contraseña  |
 |----------|---------------------------|-------------|
 | Peluquero (admin) | `admin@peluqueria.com`   | `admin123`   |
-| Cliente  | `cliente@peluqueria.com`  | `cliente123` |
 
 Para reiniciar los datos: parar el backend y borrar `backend/turnero.db`.
 
 ## Funcionalidad
 
-**Cliente**
-- Crear cuenta / iniciar sesión.
-- Reservar un turno: elige servicio y fecha, ve solo los horarios libres y reserva. El turno
-  queda **pendiente** hasta que el peluquero lo aprueba.
-- Ver sus turnos y su estado (se actualiza solo), cancelar.
+**Cliente (sin cuenta, sin login)**
+- Reserva un turno desde **Reservar**: elige el día en un **calendario**, ve solo los
+  horarios libres para ese día y el servicio (por defecto **Corte clásico**), y pone su nombre,
+  email y celular. El turno queda **pendiente** hasta que el peluquero lo aprueba.
+- Le llega un email de confirmación de la solicitud (con link para **cancelar**) y, cuando el
+  peluquero la aprueba o la cancela, otro email — es su única forma de seguimiento, no tiene
+  "mis turnos" ni cuenta.
 
 **Peluquero (admin)**
 - **Panel**: métricas del período elegido (hoy / esta semana / este mes) — cortes realizados,
@@ -57,7 +58,8 @@ ni caigan fuera del horario de atención (tanto al listar disponibilidad como al
 ## Avisos por email
 
 - Cuando un cliente reserva, el peluquero recibe un **email** con un link para **confirmar o
-  cancelar** el turno sin necesidad de iniciar sesión.
+  cancelar** el turno, y el cliente recibe otro confirmando que la solicitud llegó, con un link
+  para **cancelar** — ninguno de los dos necesita iniciar sesión.
 - Cuando el peluquero confirma, el cliente recibe el aviso. Lo mismo si se cancela.
 
 Configuración en `backend/.env` (ver `.env.example`):

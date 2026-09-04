@@ -10,6 +10,7 @@ export function Nav() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
+  // El cliente no tiene cuenta: su único link es "Reservar". El resto es solo para el barbero.
   const links =
     user?.rol === 'admin'
       ? [
@@ -18,10 +19,7 @@ export function Nav() {
           { href: '/admin/servicios', label: 'Servicios' },
           { href: '/admin/horarios', label: 'Horarios' },
         ]
-      : [
-          { href: '/reservar', label: 'Reservar' },
-          { href: '/mis-turnos', label: 'Mis turnos' },
-        ];
+      : [{ href: '/reservar', label: 'Reservar' }];
 
   return (
     <header
@@ -32,6 +30,9 @@ export function Nav() {
         flexWrap: 'wrap',
         gap: 12,
         padding: '14px 22px',
+        paddingTop: 'max(14px, env(safe-area-inset-top))',
+        paddingLeft: 'max(22px, env(safe-area-inset-left))',
+        paddingRight: 'max(22px, env(safe-area-inset-right))',
         borderBottom: `1px solid ${colores.borde}`,
         background: 'rgba(20, 22, 27, 0.85)',
         backdropFilter: 'blur(8px)',
@@ -44,7 +45,7 @@ export function Nav() {
         <Link href="/" aria-label="Inicio">
           <Logo size={32} texto={17} />
         </Link>
-        {user && (
+        {links.length > 0 && (
           <nav style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
             {links.map((l) => {
               const activo = pathname === l.href;
@@ -70,7 +71,7 @@ export function Nav() {
         )}
       </div>
 
-      {user && (
+      {user ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
           <span style={{ color: colores.textoSuave, letterSpacing: '0.02em' }}>
             {user.nombre} · {user.rol}
@@ -93,6 +94,19 @@ export function Nav() {
             Salir
           </button>
         </div>
+      ) : (
+        pathname !== '/login' && (
+          <Link
+            href="/login"
+            style={{
+              fontSize: 12,
+              color: colores.textoTenue,
+              letterSpacing: '0.02em',
+            }}
+          >
+            Soy el barbero
+          </Link>
+        )
       )}
     </header>
   );

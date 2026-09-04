@@ -16,4 +16,8 @@ export class Servicio {
 
   @Column({ default: true })
   activo: boolean;
+
+  /** URL de imagen para la card del servicio (opcional; sin ella se usa un ícono). */
+  @Column({ type: 'varchar', nullable: true })
+  imagenUrl: string | null;
 }

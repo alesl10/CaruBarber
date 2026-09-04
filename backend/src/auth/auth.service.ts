@@ -37,7 +37,8 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.usuarioRepository.findOne({ where: { email: dto.email } });
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+    // user.password es null para clientes creados al reservar sin cuenta: no tienen login.
+    if (!user || !user.password || !(await bcrypt.compare(dto.password, user.password))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
     return this.sesion(user);

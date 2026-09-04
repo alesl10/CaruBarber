@@ -1,10 +1,12 @@
 import {
+  IsEmail,
   IsInt,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 
 export class CreateTurnoDto {
@@ -22,6 +24,18 @@ export class CreateTurnoDto {
   @IsString()
   @MaxLength(300)
   nota?: string;
+
+  /** Datos de contacto: se reserva sin cuenta, identificando al cliente por su email. */
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  nombre: string;
+
+  @IsEmail()
+  email: string;
+
+  @Matches(/^[0-9()+\s-]{6,20}$/, { message: 'Teléfono inválido' })
+  telefono: string;
 }
 
 export class CambiarEstadoDto {

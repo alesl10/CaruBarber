@@ -36,7 +36,10 @@ Para reiniciar datos: parar el backend y borrar `backend/turnero.db` (se re-seed
 
 No hay suite de tests automatizados; la verificación es manual + lint.
 
-Usuarios demo del seed: `admin@peluqueria.com` / `admin123` · `cliente@peluqueria.com` / `cliente123`.
+Usuario demo del seed (login del barbero, en `/login`): `admin@peluqueria.com` / `admin123`. El
+cliente **no tiene cuenta ni login**: reserva poniendo nombre/email/celular directamente (ver
+"Reserva sin cuenta" más abajo); `cliente@peluqueria.com` / `cliente123` queda solo como fila de
+ejemplo en el seed, sin uso desde el front.
 
 ## Arquitectura backend
 
@@ -62,7 +65,8 @@ Usuarios demo del seed: `admin@peluqueria.com` / `admin123` · `cliente@peluquer
 
 ### Entidades (`backend/src/database/entities/`)
 
-`Usuario` (rol `admin`|`cliente`, password = hash), `Servicio` (`duracionMinutos` es la fuente de
+`Usuario` (rol `admin`|`cliente`; `password` = hash bcrypt, **`null` para clientes** creados al
+reservar sin cuenta — no tienen login, se identifican solo por `email`), `Servicio` (`duracionMinutos` es la fuente de
 verdad de la duración; `precio` alimenta lo recaudado), `Turno` (estado
 `pendiente`→`confirmado`→`realizado`, o `cancelado`), `ConfiguracionAgenda` (singleton id=1:
 `intervaloTurnos`, `anticipacionMinimaHoras`), `HorarioTrabajo` (1 fila por `diaSemana` 0-6, con
@@ -82,17 +86,31 @@ bloqueo, pisan un turno no cancelado, o ya pasaron (`anticipacionMinimaHoras`). 
 [common/time.util.ts](backend/src/common/time.util.ts) (`hhmmToMin`, `sumarMinutos`, `seSolapan`).
 Horas se guardan como string `'HH:MM'` (comparación lexicográfica válida), fechas `'YYYY-MM-DD'`.
 
+### Reserva sin cuenta (`TurnosService.crear` / `resolverCliente`)
+
+`POST /turnos` es **público** (sin JWT): el DTO lleva `nombre`, `email`, `telefono` además de
+`servicioId/fecha/horaInicio/nota`. `resolverCliente()` busca un `Usuario` por email (case-insensitive)
+y si no existe lo crea con `rol: 'cliente'` y `password: null`; si ya existe y es `cliente`, actualiza
+nombre/teléfono si cambiaron (nunca pisa un usuario con otro rol, p. ej. si alguien pone el email del
+admin). Como el cliente no tiene sesión ni "mis turnos", `NotificadorService.turnoRecibido` le manda
+un email de confirmación de la solicitud con link para cancelar (además del aviso al peluquero de
+`turnoReservado`). El único otro endpoint autenticado que le queda a un `cliente` es
+`PATCH /turnos/:id/cancelar` (con `JwtAuthGuard`, sin uso desde el front); en la práctica cancela por
+el link firmado de `turnos/publico` (ver más abajo).
+
 ### Flujo de notificaciones
 
 Dos capas, ambas disparadas desde `TurnosService`:
 
 1. **In-app** (`NotificacionesService`, filas en la tabla `notificaciones`): `POST /turnos` crea una
    para `destinatarioRol: 'admin'`; `confirmar`/`cancelar` marcan como leídas las del turno y crean
-   una dirigida al cliente (`destinatarioId`). El front hace polling (`/admin` 15s, `/mis-turnos` 20s).
+   una dirigida al cliente (`destinatarioId`) — esta última no la ve nadie en el front (el cliente no
+   tiene sesión), queda solo como registro. El front hace polling en `/admin` (15s).
 2. **Hacia afuera** (`NotificadorService` en `notificaciones/`): sólo **email** (`MailerService`,
    nodemailer). Se llama fire-and-forget (`.catch(() => undefined)`), nunca rompe el flujo. Eventos:
-   reserva → al peluquero con links de **confirmar/cancelar**; confirmación → al cliente; cancelación
-   → a la otra parte.
+   reserva → al peluquero (`turnoReservado`, con links de **confirmar/cancelar**) y al cliente
+   (`turnoRecibido`, con link de **cancelar** — es su único comprobante, no tiene "mis turnos");
+   confirmación → al cliente; cancelación → a la otra parte.
    - Sin `SMTP_*` en `.env`, `MailerService` usa una cuenta de prueba Ethereal y loguea el link de
      preview de cada mail (no se entregan de verdad). Con `SMTP_*`, envía por ese servidor.
    - **WhatsApp (Twilio) está implementado pero desactivado** (comentado). El código vive en
@@ -118,14 +136,16 @@ Alimenta el panel del admin.
 
 ### Endpoints
 
-`auth`: `POST /auth/{register,login}`, `GET /auth/me`.
+`auth`: `POST /auth/{register,login}` (en la práctica solo lo usa el barbero para loguearse en
+`/login`; `register` sigue existiendo pero ningún front lo llama), `GET /auth/me` (JWT).
 `servicios`: `GET` público; `POST/PATCH/DELETE` admin.
 `horarios`: `GET /horarios`, `GET /horarios/configuracion`, `GET /horarios/bloqueos` públicos;
 `PUT /horarios/:diaSemana`, `PUT /horarios/configuracion`, `POST/DELETE /horarios/bloqueos` admin.
-`turnos` (todos requieren JWT): `GET /turnos/disponibilidad`, `GET /turnos/mios` (cliente),
-`GET /turnos/estadisticas` (admin), `GET /turnos?fecha=|desde=&hasta=|estado=` (admin),
-`POST /turnos` (cliente), `PATCH /turnos/:id/{confirmar,realizar}` (admin),
-`PATCH /turnos/:id/cancelar` (admin o dueño).
+`turnos`: `GET /turnos/disponibilidad` y `POST /turnos` son **públicos** (reserva sin cuenta, ver
+arriba); `GET /turnos/mios` (JWT, sin uso desde el front — quedaría para una futura cuenta de
+cliente), `GET /turnos/estadisticas` y `GET /turnos?fecha=|desde=&hasta=|estado=` (JWT + admin),
+`PATCH /turnos/:id/{confirmar,realizar}` (JWT + admin), `PATCH /turnos/:id/cancelar` (JWT; admin o
+dueño, sin uso desde el front — el cliente cancela por el link público de abajo).
 `turnos/publico` (sin JWT, autoriza el token del link): `GET /turnos/publico/:token`,
 `POST /turnos/publico/:token { accion: 'confirmar' | 'cancelar' }`.
 `notificaciones` (JWT): `GET /notificaciones?noLeidas=`, `GET /notificaciones/no-leidas/count`,
@@ -135,8 +155,9 @@ Alimenta el panel del admin.
 
 - `lib/api.ts` — wrapper de `fetch`: base desde `NEXT_PUBLIC_API_URL`, agrega `Bearer` desde
   `localStorage` (`turnero.token`), tira `ApiError` con el mensaje del backend.
-- `lib/auth.tsx` — `AuthProvider` + `useAuth()` (`user`, `cargando`, `login`, `register`, `logout`).
-  Rehidrata llamando a `GET /auth/me`. Envuelto en [layout.tsx](frontend/src/app/layout.tsx).
+- `lib/auth.tsx` — `AuthProvider` + `useAuth()` (`user`, `cargando`, `login`, `logout`); es la sesión
+  del **barbero** (el cliente no tiene cuenta, así que no llama nada de esto). Rehidrata llamando a
+  `GET /auth/me`. Envuelto en [layout.tsx](frontend/src/app/layout.tsx).
 - `lib/types.ts` — tipos compartidos con el backend. `lib/fechas.ts` — helpers de fecha en local
   (`rangoSemana`, `rangoMes`, `gridMes`, `addDias/Meses`, …).
 - **`lib/ui.ts` — sistema de diseño** (marca Caru Barber: carbón + dorado). `colores` (paleta),
@@ -145,17 +166,35 @@ Alimenta el panel del admin.
   `botonGhost(activo)`, `chipEstado`, `avisoOk`/`avisoError`, `titulo`, `textoDorado`, `colorEstado`.
   El tema oscuro se fija en `globals.css` (`color-scheme: dark` + fondo) y las fuentes en
   `layout.tsx` con `next/font/google` (Inter + Oswald).
-- `components/Logo.tsx` — `LogoBadge` (monograma "C" SVG con navaja/tijera en dorado), `Wordmark`,
-  `TijeraRule` (divisor), `Logo` (badge + wordmark). Sin imagen: todo SVG/CSS.
+- `components/Logo.tsx` — `LogoBadge` (isotipo "C" con navaja/tijera, `public/logo-mark.png`),
+  `Wordmark` (texto, CSS), `TijeraRule` (divisor SVG), `Logo` (badge + wordmark, navbar), `LogoLockup`
+  (arte completo `public/logo-completo.png`, para el hero de `/login`). Los PNG salen de
+  `public/logoCaru.png` (el logo real de la marca) recortado por bandas transparentes.
 - `components/turnos.tsx` — `FilaTurno`, `AccionesTurno` (botones Confirmar/Marcar realizado/Cancelar
   según estado) y `TurnoModal`. Reusados por el panel y la agenda.
-- `components/Protegido.tsx` — `<Protegido rol="admin|cliente">`: redirige client-side según sesión.
-  La barrera real es server-side (guards JWT).
-- Rutas: `/` (login/registro), `/reservar` y `/mis-turnos` (cliente); admin: `/admin` (**Panel**:
-  KPIs + recaudado del período Hoy/Semana/Mes + desglose por servicio + notificaciones + solicitudes
-  pendientes), `/admin/agenda` (vistas **Día / Semana / Mes**), `/admin/servicios`, `/admin/horarios`;
-  `/turno/[token]` es **pública** (sin `Protegido`), para el link de confirmar/cancelar del email.
-  Cada página es `'use client'` y usa polling donde hace falta.
+- `components/Protegido.tsx` — `<Protegido rol="admin">`: redirige client-side según sesión (sin
+  sesión → `/login`; logueado con otro rol → su home). En la práctica solo lo usan las páginas de
+  `/admin/*`, porque el cliente ya no tiene ninguna página protegida. La barrera real es
+  server-side (guards JWT).
+- Rutas públicas para el cliente: **`/` es la landing** (hero con el logo, ventajas, preview de
+  servicios y horarios de atención — todo con datos reales de `GET /servicios` y `GET /horarios` —
+  y CTA a `/reservar`); **`/reservar`** tiene el flujo real (calendario del mes con día/hora
+  disponibles, servicio — por defecto "Corte clásico" — y datos de contacto nombre/email/celular;
+  sin login). `Nav` muestra un tab "Reservar" para cualquier visitante sin sesión. `/login` es el
+  ingreso del barbero (única cuenta real de la app). Admin (protegidas, rol admin): `/admin`
+  (**Panel**: KPIs + recaudado del período Hoy/Semana/Mes + gráficos + desglose por servicio +
+  notificaciones + solicitudes pendientes), `/admin/agenda` (vistas **Día / Semana / Mes** +
+  resumen por estado), `/admin/servicios` (cards con imagen/ícono), `/admin/horarios`.
+- **PWA**: `public/manifest.json` + `metadata`/`viewport` de [layout.tsx](frontend/src/app/layout.tsx)
+  (`manifest`, `icons`, `appleWebApp`, `themeColor`) hacen que se pueda "agregar a la pantalla de
+  inicio" y abrir en modo `standalone` (sin barra del navegador), en iOS y Android. Los íconos
+  (`public/icon-*.png`, `icon-maskable-*.png`, `apple-touch-icon.png`) se generaron una vez a partir
+  de `logo-mark.png`; no hay build step para esto, son archivos estáticos. Sin service worker a
+  propósito: la disponibilidad de turnos cambia todo el tiempo y cachear respuestas viejas sería
+  peor que no tener nada offline.
+  `/turno/[token]` es **pública** (sin `Protegido`), para el link de confirmar/cancelar del email —
+  es el único lugar donde el cliente gestiona su turno después de reservar. Cada página es
+  `'use client'` y usa polling donde hace falta.
 
 ## Despliegue (Supabase + Vercel) — ver [DEPLOY.md](DEPLOY.md)
 

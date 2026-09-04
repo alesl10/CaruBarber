@@ -1,0 +1,18 @@
+{
+  "name": "Caru Barber · Turnos",
+  "short_name": "Caru Barber",
+  "description": "Reservá tu turno en Caru Barber: elegí día, horario y servicio sin crear cuenta.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#14161B",
+  "theme_color": "#14161B",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
