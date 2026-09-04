@@ -1,0 +1,2 @@
+# Directorio de salida "estático" para Vercel (vacío a propósito).
+# El backend no sirve estáticos: todo el tráfico va a la función serverless api/index.ts.
