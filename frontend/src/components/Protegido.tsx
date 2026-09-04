@@ -19,9 +19,9 @@ export function Protegido({
   useEffect(() => {
     if (cargando) return;
     if (!user) {
-      router.replace('/');
+      router.replace(rol === 'admin' ? '/login' : '/');
     } else if (user.rol !== rol) {
-      router.replace(user.rol === 'admin' ? '/admin' : '/reservar');
+      router.replace(user.rol === 'admin' ? '/admin' : '/');
     }
   }, [user, cargando, rol, router]);
 

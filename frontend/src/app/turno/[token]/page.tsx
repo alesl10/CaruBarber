@@ -34,7 +34,7 @@ interface RespuestaPublica {
 
 export default function TurnoPublicoPage() {
   return (
-    <Suspense fallback={<main style={{ ...page, maxWidth: 460 }}>Cargando…</main>}>
+    <Suspense fallback={<main style={{ ...page, maxWidth: 460, margin: '0 auto' }}>Cargando…</main>}>
       <TurnoPublico />
     </Suspense>
   );
@@ -81,7 +81,7 @@ function TurnoPublico() {
   }
 
   return (
-    <main style={{ ...page, maxWidth: 460 }}>
+    <main style={{ ...page, maxWidth: 460, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0 20px' }}>
         <LogoBadge size={40} />
         <Wordmark size={18} />

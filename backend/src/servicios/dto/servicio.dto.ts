@@ -1,4 +1,8 @@
-import { IsInt, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Matches, Min, MinLength } from 'class-validator';
+
+/** URL absoluta (http/https) o ruta relativa a `frontend/public` (p. ej. `/barba.jpg`). */
+const IMAGEN_URL_REGEX = /^(https?:\/\/\S+|\/\S+)$/;
+const IMAGEN_URL_MENSAJE = 'imagenUrl debe ser una URL (http/https) o una ruta que empiece con /';
 
 export class CreateServicioDto {
   @IsString()
@@ -12,6 +16,10 @@ export class CreateServicioDto {
   @IsNumber()
   @Min(0)
   precio: number;
+
+  @IsOptional()
+  @Matches(IMAGEN_URL_REGEX, { message: IMAGEN_URL_MENSAJE })
+  imagenUrl?: string;
 }
 
 export class UpdateServicioDto {
@@ -29,4 +37,8 @@ export class UpdateServicioDto {
   @IsNumber()
   @Min(0)
   precio?: number;
+
+  @IsOptional()
+  @Matches(IMAGEN_URL_REGEX, { message: IMAGEN_URL_MENSAJE })
+  imagenUrl?: string | null;
 }

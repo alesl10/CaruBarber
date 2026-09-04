@@ -14,6 +14,7 @@ export interface Servicio {
   duracionMinutos: number;
   precio: number;
   activo: boolean;
+  imagenUrl: string | null;
 }
 
 export type EstadoTurno = 'pendiente' | 'confirmado' | 'realizado' | 'cancelado';
@@ -86,6 +87,15 @@ export interface EstadisticaServicio {
   monto: number;
 }
 
+export interface EstadisticaDia {
+  fecha: string;
+  pendientes: number;
+  confirmados: number;
+  realizados: number;
+  cancelados: number;
+  recaudado: number;
+}
+
 export interface Estadisticas {
   rango: { desde: string; hasta: string };
   pendientes: number;
@@ -96,6 +106,7 @@ export interface Estadisticas {
   recaudado: number;
   recaudadoProyectado: number;
   porServicio: EstadisticaServicio[];
+  serie: EstadisticaDia[];
 }
 
 export const DIAS_SEMANA = [

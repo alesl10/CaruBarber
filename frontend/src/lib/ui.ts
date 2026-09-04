@@ -29,9 +29,10 @@ export const oroGradiente =
 export const fuenteDisplay = "var(--font-display), 'Oswald', system-ui, sans-serif";
 
 export const page: CSSProperties = {
-  maxWidth: 1100,
+  width: '100%',
+  maxWidth: 'min(1600px, 94vw)',
   margin: '0 auto',
-  padding: '28px 20px 72px',
+  padding: '28px clamp(20px, 3vw, 56px) 72px',
   color: colores.texto,
 };
 

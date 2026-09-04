@@ -113,10 +113,12 @@ aparecieron las tablas (`usuarios`, `servicios`, `turnos`, `horarios_trabajo`, `
 
 ## 4. Verificación end-to-end
 
-1. Abrí el frontend, registrate como cliente, reservá un turno.
-2. Debe llegarte el email "Nuevo turno …" con los links **Confirmar / Cancelar**.
-3. Abrí el link de confirmar → confirmá → debe llegar el email al cliente.
-4. Entrá como `admin@peluqueria.com` / `admin123` → Panel y Agenda con los datos.
+1. Abrí el frontend (landing pública) → **Reservar turno** y reservá un turno poniendo nombre,
+   email y celular.
+2. Debe llegarte un email al peluquero ("Nuevo turno …" con los links **Confirmar / Cancelar**) y
+   otro al cliente ("Recibimos tu solicitud…" con link de **Cancelar**).
+3. Abrí el link de confirmar → confirmá → debe llegar el email de confirmación al cliente.
+4. Entrá en `/login` como `admin@peluqueria.com` / `admin123` → Panel y Agenda con los datos.
 
 **Cambiá la contraseña del admin demo** (o borrá el usuario y creá el tuyo) antes de usarlo en serio.
 

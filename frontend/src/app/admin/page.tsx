@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Protegido } from '../../components/Protegido';
+import { GraficoRecaudado, GraficoTurnos } from '../../components/graficos';
 import { AccionTurno, FilaTurno } from '../../components/turnos';
 import { api } from '../../lib/api';
 import { hoyISO, nombreMes, rangoMes, rangoSemana } from '../../lib/fechas';
@@ -178,6 +179,20 @@ function PanelInner() {
           </div>
         </div>
       </section>
+
+      {stats?.serie?.length && (periodo === 'semana' || periodo === 'mes') ? (
+        <section
+          style={{
+            display: 'grid',
+            gap: 12,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            marginBottom: 24,
+          }}
+        >
+          <GraficoRecaudado serie={stats.serie} />
+          <GraficoTurnos serie={stats.serie} />
+        </section>
+      ) : null}
 
       <section style={{ ...card, marginBottom: 24 }}>
         <strong style={{ letterSpacing: '0.03em' }}>

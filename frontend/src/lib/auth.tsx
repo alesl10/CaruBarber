@@ -15,12 +15,6 @@ interface AuthState {
   user: Usuario | null;
   cargando: boolean;
   login: (email: string, password: string) => Promise<Usuario>;
-  register: (data: {
-    nombre: string;
-    email: string;
-    password: string;
-    telefono?: string;
-  }) => Promise<Usuario>;
   logout: () => void;
 }
 
@@ -46,26 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return user;
   }, []);
 
-  const register = useCallback(
-    async (data: { nombre: string; email: string; password: string; telefono?: string }) => {
-      const { token, user } = await api<{ token: string; user: Usuario }>('/auth/register', {
-        body: data,
-      });
-      setToken(token);
-      setUser(user);
-      return user;
-    },
-    [],
-  );
-
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, cargando, login, register, logout }),
-    [user, cargando, login, register, logout],
+    () => ({ user, cargando, login, logout }),
+    [user, cargando, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
